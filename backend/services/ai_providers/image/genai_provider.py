@@ -108,8 +108,12 @@ class GenAIImageProvider(ImageProvider):
             # Build config
             # Build config
             image_config_args = {'aspect_ratio': aspect_ratio}
+            logging.info(f"DEBUG: GenAIProvider - Received resolution={resolution}")
             if resolution:
                 image_config_args['image_size'] = resolution
+                logging.info(f"DEBUG: GenAIProvider - Added image_size={resolution} to config")
+            else:
+                logging.info("DEBUG: GenAIProvider - Skipped image_size (resolution is None or empty)")
                 
             config_params = {
                 'response_modalities': ['TEXT', 'IMAGE'],
