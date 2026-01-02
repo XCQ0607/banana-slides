@@ -148,6 +148,21 @@ def create_app():
             }
         }
     
+    # Serve Frontend Static Files
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_frontend(path):
+        from flask import send_from_directory
+        
+        # 定义静态文件目录 (相对于 backend 目录)
+        # 在 Docker 中，前端构建产物会被复制到 backend/static/dist
+        static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'dist')
+        
+        if path != "" and os.path.exists(os.path.join(static_folder, path)):
+            return send_from_directory(static_folder, path)
+        else:
+            return send_from_directory(static_folder, 'index.html')
+
     return app
 
 
