@@ -199,9 +199,11 @@ def _load_settings_to_config(app):
                 logging.info("API key is empty in settings, using env var or default")
 
         # Load image generation settings
+        # Load image generation settings
         app.config['DEFAULT_RESOLUTION'] = settings.image_resolution
+        app.config['ENABLE_IMAGE_RESOLUTION'] = settings.enable_image_resolution
         app.config['DEFAULT_ASPECT_RATIO'] = settings.image_aspect_ratio
-        logging.info(f"Loaded image settings: {settings.image_resolution}, {settings.image_aspect_ratio}")
+        logging.info(f"Loaded image settings: res={settings.image_resolution}, enable={settings.enable_image_resolution}, ratio={settings.image_aspect_ratio}")
 
         # Load worker settings
         app.config['MAX_DESCRIPTION_WORKERS'] = settings.max_description_workers
