@@ -166,7 +166,147 @@ class GenAIImageProvider(ImageProvider):
             raise ValueError(error_msg)
             
         except Exception as e:
-            error_detail = f"Error generating image with GenAI: {type(e).__name__}: {str(e)}"
-            logger.error(error_detail, exc_info=True)
-            raise Exception(error_detail) from e
+            logger.warning(f"SDK generation failed: {str(e)}. Attempting raw HTTP fallback...")
+            try:
+                return self._generate_image_raw(prompt, ref_images, aspect_ratio, resolution, enable_thinking)
+            except Exception as raw_e:
+                error_detail = f"Both SDK and Raw HTTP generation failed. SDK Error: {str(e)}. Raw Error: {str(raw_e)}"
+                logger.error(error_detail, exc_info=True)
+                raise Exception(error_detail) from e
+
+    def _generate_image_raw(
+        self,
+        prompt: str,
+        ref_images: Optional[List[Image.Image]] = None,
+        aspect_ratio: str = "16:9",
+        resolution: str = "2K",
+        enable_thinking: bool = True
+    ) -> Optional[Image.Image]:
+        """
+        Generate image using raw HTTP request (robust fallback)
+        """
+        import requests
+        import json
+        import base64
+        from io import BytesIO
+
+        logger.info("Starting raw HTTP image generation...")
+
+        # Construct URL
+        if hasattr(self.client, '_api_key') and self.client._api_key:
+             # AI Studio mode
+            base_url = "https://generativelanguage.googleapis.com"
+            if hasattr(self.client, '_http_options') and self.client._http_options.base_url:
+                base_url = self.client._http_options.base_url.rstrip('/')
+            
+            url = f"{base_url}/v1beta/models/{self.model}:generateContent?key={self.client._api_key}"
+        else:
+            # Vertex AI mode (not fully supported in raw fallback yet, but we can try)
+            # For now, if we are here, it's likely AI Studio / Proxy usage
+            raise NotImplementedError("Raw HTTP fallback currently only supports AI Studio/API Key mode")
+
+        # Construct Payload
+        contents_parts = []
+        
+        # Add reference images
+        if ref_images:
+            for img in ref_images:
+                buffered = BytesIO()
+                img.save(buffered, format="PNG")
+                img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                contents_parts.append({
+                    "inline_data": {
+                        "mime_type": "image/png",
+                        "data": img_str
+                    }
+                })
+
+        # Add prompt
+        contents_parts.append({"text": prompt})
+
+        payload = {
+            "contents": [{"parts": contents_parts}],
+            "generationConfig": {
+                "response_modalities": ["TEXT", "IMAGE"],
+                "image_config": {"aspect_ratio": aspect_ratio}
+            }
+        }
+
+        if resolution:
+             payload["generationConfig"]["image_config"]["image_size"] = resolution
+
+        if enable_thinking:
+             payload["generationConfig"]["thinking_config"] = {"include_thoughts": True}
+
+        # Send Request
+        try:
+            logger.debug(f"Sending raw POST request to {url.split('?')[0]}...")
+            response = requests.post(url, json=payload, timeout=120)
+            
+            if response.status_code != 200:
+                raise Exception(f"HTTP {response.status_code}: {response.text}")
+            
+            # Loose Parsing Logic
+            try:
+                data = response.json()
+            except:
+                # If not JSON, maybe it's raw text?
+                raise Exception(f"Invalid JSON response: {response.text[:200]}")
+
+            # 1. Try Standard Google Format (candidates -> content -> parts -> inline_data)
+            try:
+                if 'candidates' in data:
+                    for candidate in data['candidates']:
+                        if 'content' in candidate and 'parts' in candidate['content']:
+                            for part in candidate['content']['parts']:
+                                if 'inline_data' in part:
+                                    b64_data = part['inline_data']['data']
+                                    return Image.open(BytesIO(base64.b64decode(b64_data)))
+                                # Handle camelCase variation just in case
+                                if 'inlineData' in part:
+                                    b64_data = part['inlineData']['data']
+                                    return Image.open(BytesIO(base64.b64decode(b64_data)))
+            except Exception as e:
+                logger.debug(f"Failed to parse standard format: {e}")
+
+            # 2. Try Imagen Format (predictions -> bytesBase64Encoded)
+            try:
+                if 'predictions' in data:
+                    for pred in data['predictions']:
+                        if 'bytesBase64Encoded' in pred:
+                            return Image.open(BytesIO(base64.b64decode(pred['bytesBase64Encoded'])))
+            except Exception as e:
+                logger.debug(f"Failed to parse Imagen format: {e}")
+
+            # 3. Try 'images' array (common proxy format)
+            try:
+                if 'images' in data and isinstance(data['images'], list) and len(data['images']) > 0:
+                    return Image.open(BytesIO(base64.b64decode(data['images'][0])))
+            except Exception as e:
+                logger.debug(f"Failed to parse 'images' array: {e}")
+
+            # 4. Try 'data' field (single base64 string)
+            try:
+                if 'data' in data and isinstance(data['data'], str):
+                     return Image.open(BytesIO(base64.b64decode(data['data'])))
+            except Exception as e:
+                logger.debug(f"Failed to parse 'data' field: {e}")
+
+            # 5. Try 'output' field
+            try:
+                if 'output' in data:
+                     # Could be list or string
+                     if isinstance(data['output'], list) and len(data['output']) > 0:
+                         return Image.open(BytesIO(base64.b64decode(data['output'][0])))
+                     if isinstance(data['output'], str):
+                         return Image.open(BytesIO(base64.b64decode(data['output'])))
+            except Exception as e:
+                logger.debug(f"Failed to parse 'output' field: {e}")
+
+            logger.error(f"Could not find image data in response: {str(data)[:500]}")
+            raise ValueError("No recognizable image data found in response")
+
+        except Exception as e:
+            logger.error(f"Raw HTTP request failed: {str(e)}")
+            raise
 
