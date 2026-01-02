@@ -1,7 +1,12 @@
 # ==========================================
-# Stage 1: Build Frontend
+# Global ARGs
 # ==========================================
 ARG DOCKER_REGISTRY=
+ARG GHCR_REGISTRY=ghcr.io/
+
+# ==========================================
+# Stage 1: Build Frontend
+# ==========================================
 FROM ${DOCKER_REGISTRY:-}node:18-alpine AS frontend-builder
 
 ARG NPM_REGISTRY=
@@ -28,13 +33,11 @@ RUN npm run build
 # ==========================================
 # Stage 2: Build Backend Environment (uv)
 # ==========================================
-ARG GHCR_REGISTRY=ghcr.io/
 FROM ${GHCR_REGISTRY}astral-sh/uv:latest AS uv
 
 # ==========================================
 # Stage 3: Final Image
 # ==========================================
-ARG DOCKER_REGISTRY=
 FROM ${DOCKER_REGISTRY:-}python:3.10-slim
 
 ARG APT_MIRROR=
