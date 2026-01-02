@@ -83,8 +83,15 @@ COPY backend/ ./backend/
 # backend/app.py expects them at backend/static/dist
 COPY --from=frontend-builder /app/frontend/dist ./backend/static/dist
 
-# Create necessary directories
-RUN mkdir -p /app/backend/instance /app/uploads
+# Create a non-root user
+RUN useradd -m -u 1000 appuser
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/backend/instance /app/uploads && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Set environment variables
 ENV PYTHONPATH=/app
