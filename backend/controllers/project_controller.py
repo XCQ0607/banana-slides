@@ -722,8 +722,10 @@ def generate_images(project_id):
             outline,
             use_template,
             max_workers,
+            use_template,
+            max_workers,
             current_app.config['DEFAULT_ASPECT_RATIO'],
-            current_app.config['DEFAULT_RESOLUTION'],
+            current_app.config['DEFAULT_RESOLUTION'] if current_app.config.get('ENABLE_IMAGE_RESOLUTION', True) else None,
             app,
             combined_requirements if combined_requirements.strip() else None,
             language

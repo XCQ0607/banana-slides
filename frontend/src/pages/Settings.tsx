@@ -8,7 +8,7 @@ import { OUTPUT_LANGUAGE_OPTIONS } from '@/api/endpoints';
 import type { Settings as SettingsType } from '@/types';
 
 // 配置项类型定义
-type FieldType = 'text' | 'password' | 'number' | 'select' | 'buttons';
+type FieldType = 'text' | 'password' | 'number' | 'select' | 'buttons' | 'switch';
 
 interface FieldConfig {
   key: keyof typeof initialFormData;
@@ -39,7 +39,9 @@ const initialFormData = {
   image_caption_model: '',
   mineru_api_base: '',
   mineru_token: '',
+  mineru_token: '',
   image_resolution: '2K',
+  enable_image_resolution: true,
   image_aspect_ratio: '16:9',
   max_description_workers: 5,
   max_image_workers: 8,
@@ -142,7 +144,14 @@ const settingsSections: SectionConfig[] = [
           { value: '1K', label: '1K (1024px)' },
           { value: '2K', label: '2K (2048px)' },
           { value: '4K', label: '4K (4096px)' },
+          { value: '4K', label: '4K (4096px)' },
         ],
+      },
+      {
+        key: 'enable_image_resolution',
+        label: '启用图像清晰度设置',
+        type: 'switch',
+        description: '如果关闭，将不向 API 发送 image_size 参数（适用于不支持该参数的模型）',
       },
     ],
   },
@@ -207,7 +216,9 @@ export const Settings: React.FC = () => {
           ai_provider_format: response.data.ai_provider_format || 'gemini',
           api_base_url: response.data.api_base_url || '',
           api_key: '',
+          api_key: '',
           image_resolution: response.data.image_resolution || '2K',
+          enable_image_resolution: response.data.enable_image_resolution !== undefined ? response.data.enable_image_resolution : true,
           image_aspect_ratio: response.data.image_aspect_ratio || '16:9',
           max_description_workers: response.data.max_description_workers || 5,
           max_image_workers: response.data.max_image_workers || 8,
@@ -276,7 +287,9 @@ export const Settings: React.FC = () => {
               ai_provider_format: response.data.ai_provider_format || 'gemini',
               api_base_url: response.data.api_base_url || '',
               api_key: '',
+              api_key: '',
               image_resolution: response.data.image_resolution || '2K',
+              enable_image_resolution: response.data.enable_image_resolution !== undefined ? response.data.enable_image_resolution : true,
               image_aspect_ratio: response.data.image_aspect_ratio || '16:9',
               max_description_workers: response.data.max_description_workers || 5,
               max_image_workers: response.data.max_image_workers || 8,
@@ -327,13 +340,12 @@ export const Settings: React.FC = () => {
                 key={option.value}
                 type="button"
                 onClick={() => handleFieldChange(field.key, option.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  value === option.value
-                    ? option.value === 'openai'
-                      ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md'
-                      : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${value === option.value
+                  ? option.value === 'openai'
+                    ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md'
+                    : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md'
+                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                  }`}
               >
                 {option.label}
               </button>
@@ -370,6 +382,32 @@ export const Settings: React.FC = () => {
       );
     }
 
+    if (field.type === 'switch') {
+      return (
+        <div key={field.key} className="flex items-center justify-between">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              {field.label}
+            </label>
+            {field.description && (
+              <p className="mt-1 text-sm text-gray-500">{field.description}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleFieldChange(field.key, !value)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-banana-500 focus:ring-offset-2 ${value ? 'bg-banana-500' : 'bg-gray-200'
+              }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${value ? 'translate-x-5' : 'translate-x-0'
+                }`}
+            />
+          </button>
+        </div>
+      );
+    }
+
     // text, password, number 类型
     const placeholder = field.sensitiveField && settings && field.lengthKey
       ? `已设置（长度: ${settings[field.lengthKey]}）`
@@ -383,7 +421,7 @@ export const Settings: React.FC = () => {
           placeholder={placeholder}
           value={value as string | number}
           onChange={(e) => {
-            const newValue = field.type === 'number' 
+            const newValue = field.type === 'number'
               ? parseInt(e.target.value) || (field.min ?? 0)
               : e.target.value;
             handleFieldChange(field.key, newValue);
@@ -469,7 +507,7 @@ export const Settings: React.FC = () => {
 // SettingsPage 组件 - 完整页面包装
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-banana-50 to-yellow-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">

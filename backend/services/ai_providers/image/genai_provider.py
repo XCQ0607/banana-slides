@@ -106,12 +106,14 @@ class GenAIImageProvider(ImageProvider):
             logger.debug(f"Config - aspect_ratio: {aspect_ratio}, resolution: {resolution}, enable_thinking: {enable_thinking}")
             
             # Build config
+            # Build config
+            image_config_args = {'aspect_ratio': aspect_ratio}
+            if resolution:
+                image_config_args['image_size'] = resolution
+                
             config_params = {
                 'response_modalities': ['TEXT', 'IMAGE'],
-                'image_config': types.ImageConfig(
-                    aspect_ratio=aspect_ratio,
-                    image_size=resolution
-                )
+                'image_config': types.ImageConfig(**image_config_args)
             }
             
             # Add thinking config if enabled

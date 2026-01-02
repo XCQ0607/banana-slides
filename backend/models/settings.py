@@ -14,6 +14,7 @@ class Settings(db.Model):
     api_base_url = db.Column(db.String(500), nullable=True)  # API基础URL
     api_key = db.Column(db.String(500), nullable=True)  # API密钥
     image_resolution = db.Column(db.String(20), nullable=False, default='2K')  # 图像清晰度: 1K, 2K, 4K
+    enable_image_resolution = db.Column(db.Boolean, nullable=False, default=True)  # 是否启用图像清晰度设置
     image_aspect_ratio = db.Column(db.String(10), nullable=False, default='16:9')  # 图像比例: 16:9, 4:3, 1:1
     max_description_workers = db.Column(db.Integer, nullable=False, default=5)  # 描述生成最大工作线程数
     max_image_workers = db.Column(db.Integer, nullable=False, default=8)  # 图像生成最大工作线程数
@@ -36,6 +37,7 @@ class Settings(db.Model):
             'api_base_url': self.api_base_url,
             'api_key_length': len(self.api_key) if self.api_key else 0,
             'image_resolution': self.image_resolution,
+            'enable_image_resolution': self.enable_image_resolution,
             'image_aspect_ratio': self.image_aspect_ratio,
             'max_description_workers': self.max_description_workers,
             'max_image_workers': self.max_image_workers,
@@ -76,6 +78,7 @@ class Settings(db.Model):
                 api_base_url=default_api_base,
                 api_key=default_api_key,
                 image_resolution=Config.DEFAULT_RESOLUTION,
+                enable_image_resolution=Config.ENABLE_IMAGE_RESOLUTION,
                 image_aspect_ratio=Config.DEFAULT_ASPECT_RATIO,
                 max_description_workers=Config.MAX_DESCRIPTION_WORKERS,
                 max_image_workers=Config.MAX_IMAGE_WORKERS,

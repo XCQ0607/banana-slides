@@ -79,6 +79,9 @@ def update_settings():
                 return bad_request("Resolution must be 1K, 2K, or 4K")
             settings.image_resolution = resolution
 
+        if "enable_image_resolution" in data:
+            settings.enable_image_resolution = bool(data["enable_image_resolution"])
+
         if "image_aspect_ratio" in data:
             aspect_ratio = data["image_aspect_ratio"]
             settings.image_aspect_ratio = aspect_ratio
@@ -174,7 +177,9 @@ def reset_settings():
         settings.mineru_token = Config.MINERU_TOKEN
         settings.image_caption_model = Config.IMAGE_CAPTION_MODEL
         settings.output_language = 'zh'  # 重置为默认中文
+        settings.output_language = 'zh'  # 重置为默认中文
         settings.image_resolution = Config.DEFAULT_RESOLUTION
+        settings.enable_image_resolution = Config.ENABLE_IMAGE_RESOLUTION
         settings.image_aspect_ratio = Config.DEFAULT_ASPECT_RATIO
         settings.max_description_workers = Config.MAX_DESCRIPTION_WORKERS
         settings.max_image_workers = Config.MAX_IMAGE_WORKERS
@@ -262,6 +267,7 @@ def _sync_settings_to_config(settings: Settings):
 
     # Sync image generation settings
     current_app.config["DEFAULT_RESOLUTION"] = settings.image_resolution
+    current_app.config["ENABLE_IMAGE_RESOLUTION"] = settings.enable_image_resolution
     current_app.config["DEFAULT_ASPECT_RATIO"] = settings.image_aspect_ratio
 
     # Sync worker settings
