@@ -229,7 +229,11 @@ def export_editable_pptx(project_id):
         
         # Get configuration
         aspect_ratio = current_app.config.get('DEFAULT_ASPECT_RATIO', '16:9')
-        resolution = current_app.config.get('DEFAULT_RESOLUTION', '2K')
+        
+        # Check if resolution is enabled
+        enable_res = current_app.config.get('ENABLE_IMAGE_RESOLUTION', True)
+        resolution = current_app.config.get('DEFAULT_RESOLUTION', '2K') if enable_res else None
+        
         max_workers = min(8, current_app.config.get('MAX_IMAGE_WORKERS', 8))
         
         # Get Flask app instance for background task

@@ -233,6 +233,11 @@ def generate_material_image(project_id):
             # Get app instance for background task
             app = current_app._get_current_object()
 
+            # Debug logging
+            enable_res = current_app.config.get('ENABLE_IMAGE_RESOLUTION', True)
+            res_val = current_app.config['DEFAULT_RESOLUTION'] if enable_res else None
+            logging.info(f"DEBUG: MaterialController - ENABLE_IMAGE_RESOLUTION={enable_res}, Passing resolution={res_val}")
+
             # Submit background task
             task_manager.submit_task(
                 task.id,
@@ -244,7 +249,7 @@ def generate_material_image(project_id):
                 ref_path_str,
                 additional_ref_images if additional_ref_images else None,
                 current_app.config['DEFAULT_ASPECT_RATIO'],
-                current_app.config['DEFAULT_RESOLUTION'],
+                res_val,
                 temp_dir_str,
                 app
             )
